@@ -1,0 +1,83 @@
+{
+  "name": "Content Creator Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-creator",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
+      "name": "Content Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "content": "You are a creative content creator. Generate engaging content based on the topic and type requested."
+            },
+            {
+              "role": "user",
+              "content": "Create {{ $json.content_type }} content about {{ $json.topic }}. Target audience: {{ $json.audience }}. Tone: {{ $json.tone }}."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.8
+        }
+      },
+      "id": "content-generator",
+      "name": "Generate Content",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"generated_content\": $json.choices[0].message.content, \"topic\": $('Content Request').item.json.topic, \"content_type\": $('Content Request').item.json.content_type } }}"
+      },
+      "id": "respond-content",
+      "name": "Return Content",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Content Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content": {
+      "main": [
+        [
+          {
+            "node": "Return Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}
